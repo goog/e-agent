@@ -18,6 +18,7 @@ from pathlib import Path
 from datetime import datetime
 #from copy import deepcopy
 from typing import Set, List
+import uuid
 
 WORKSPACE       = Path("agent_workspace")
 MEMORY_DIR      = WORKSPACE / ".memory"
@@ -54,6 +55,15 @@ def to_filename(text: str, ext: str = "py") -> str:
         return f"output__.{ext}"
     
     return f"{'_'.join(words)}.{ext}"
+
+
+def has_iteration(s: str) -> bool:
+    """True if the source contains a loop or recursive call."""
+    if "for " in s or "while " in s:
+        return True
+    # Detect recursion: any defined function that calls itself
+    defined = re.findall(r"def (\w+)", s)
+    return any(s.count(name) >= 2 for name in defined)
 # =====================================================================
 #  TOOL REGISTRY
 # =====================================================================
@@ -104,6 +114,7 @@ class ToolRegistry:
 
     @staticmethod
     def _write_file(path, content):
+        print(f"write file path {path}")
         p = WORKSPACE / path
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content)
@@ -126,7 +137,11 @@ class ToolRegistry:
 
     @staticmethod
     def _run_python(code, cwd=None):
-        tmp = WORKSPACE / "_tmp.py"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = uuid.uuid4().hex[:8]  # short 8-char UUID fragment
+        filename = f"{timestamp}_{unique_id}.py"
+
+        tmp = WORKSPACE / filename
         tmp.write_text(code)
         try:
             ## for windows python
@@ -451,7 +466,7 @@ class AcceptanceCriteria:
 
         report = {
             "feature_checklist": [],
-            "test_results": [],
+            "test_results": {},
             "quality_gates": [],
             "summary": {},
         }
@@ -557,11 +572,7 @@ class AcceptanceCriteria:
                 "has_output":      lambda s: "print(" in s or "logging" in s,
                 "has_file_io":     lambda s: "open(" in s or "read(" in s or "write(" in s,
                 "has_data_structures": lambda s: any(k in s for k in ["list(", "dict(", "[", "{"]),
-                "has_iteration":   lambda s: "for " in s or "while " in s or any(
-                    "def " in s and name in s for name in ["recursive", "recurse"]) or (
-                    source.count("def ") >= 1 and any(
-                        fn_name in s for fn_name in re.findall(r"def (\w+)", s)
-                        if s.count(fn_name) >= 2)),
+                "has_iteration":   has_iteration,
                 "has_content":     lambda s: len(s.strip()) > 20,
                 "has_imports":     lambda s: "import " in s,
                 "has_api_call":    lambda s: "requests." in s or "http" in s.lower() or "fetch" in s,
