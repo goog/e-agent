@@ -1,0 +1,182 @@
+[
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:33.004623"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:33.246302"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:33.495479"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:33.746502"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:34.013453"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:34.246322"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:34.510447"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:34.746774"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:34.979614"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:35.213182"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:35.475135"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T09:57:35.713070"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:57.159326"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:57.413061"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:57.659036"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:57.908517"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:58.175957"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:58.439806"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:58.692353"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:58.927234"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:59.202286"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:59.441980"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:59.703056"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:00:59.961954"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:32.371297"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:32.548412"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:32.748771"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:32.948800"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:33.132233"
+  },
+  {
+    "pattern": "file",
+    "fix": "Fix file path",
+    "transform": "add_os_chdir",
+    "created": "2026-04-19T10:51:33.341090"
+  }
+]
