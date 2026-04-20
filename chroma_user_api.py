@@ -98,7 +98,7 @@ def import_skills(
 
 # ─── Search helper ────────────────────────────────────────────────────────────
 
-def search_skills(collection, query: str, n_results: int = 3, max_distance: float = 0.39):
+def search_skills(collection, query: str, n_results: int = 3, max_distance: float = 0.37):
     results = collection.query(
         query_texts=[query],
         n_results=min(n_results, collection.count()),

@@ -19,6 +19,7 @@ from datetime import datetime
 #from copy import deepcopy
 from typing import Set, List
 import uuid
+import questionary
 import chroma_user_api
 
 WORKSPACE       = Path("agent_workspace")
@@ -858,10 +859,13 @@ class SelfEvolvingAgent:
             )
             matching_skill = None if skip_reuse else self._find_skill(goal)
             if matching_skill:
-                print(f"  [REUSE] Skill: {matching_skill}")
-                code = self.memory.skills[matching_skill]["code"]
-                self.memory.skills[matching_skill]["uses"] += 1
-                self.memory.save()
+                ## skill confirm
+                answer = questionary.confirm("confirm to reuse history code").ask()
+                if answer:
+                    print(f"  [REUSE] Skill: {matching_skill}")
+                    code = self.memory.skills[matching_skill]["code"]
+                    self.memory.skills[matching_skill]["uses"] += 1
+                    self.memory.save()
             else:
                 code = self.codegen.generate(goal, fname, context)
                 print(f"** code generate {code}")
@@ -918,7 +922,8 @@ class SelfEvolvingAgent:
         col = chroma_user_api.get_skill_collection()
         result = chroma_user_api.search_skills(col, goal)
         name = result[0]['id'] if result else None
-
+        if name:
+            print(f"matched skill: {result[0]}")
         return name
 
     def _apply_fix(self, action, goal, fname, report, prev_code):
