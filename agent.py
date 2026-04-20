@@ -19,6 +19,7 @@ from datetime import datetime
 #from copy import deepcopy
 from typing import Set, List
 import uuid
+import chroma_user_api
 
 WORKSPACE       = Path("agent_workspace")
 MEMORY_DIR      = WORKSPACE / ".memory"
@@ -913,13 +914,12 @@ class SelfEvolvingAgent:
                 "score": best["score"], "file": fname}
 
     def _find_skill(self, goal):
-        goal_lower = goal.lower()
-        for name, skill in self.memory.skills.items():
-            skill_code = skill.get("code", "")
-            for keyword in ["fibonacci", "factorial", "sort", "search"]:
-                if keyword in goal_lower and keyword in skill_code.lower():
-                    pass #return name     function issue
-        return None
+        #goal_lower = goal.lower()
+        col = chroma_user_api.get_skill_collection()
+        result = chroma_user_api.search_skills(col, goal)
+        name = result[0]['id'] if result else None
+
+        return name
 
     def _apply_fix(self, action, goal, fname, report, prev_code):
         if action == "patch_path":
