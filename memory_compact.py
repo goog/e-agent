@@ -16,7 +16,7 @@ import textwrap
 from dataclasses import dataclass, field
 from typing import Literal
 
-import anthropic
+from openai import OpenAI
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -118,7 +118,12 @@ def _summarise(
 ) -> str:
     """Ask Claude to compress `messages` into a concise summary."""
 
-    client = anthropic.Anthropic()   # reads ANTHROPIC_API_KEY from env
+    #client = anthropic.Anthropic()   # reads ANTHROPIC_API_KEY from env
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="<OPENROUTER_API_KEY>",
+    )
+
 
     history_text = "\n".join(
         f"[{m.role.upper()}]: {m.content}" for m in messages
@@ -145,12 +150,19 @@ def _summarise(
         Do NOT include pleasantries. Be terse and factual.
     """).strip()
 
-    response = client.messages.create(
-        model      = "claude-sonnet-4-20250514",
-        max_tokens = 512,
-        messages   = [{"role": "user", "content": prompt}],
+    response = client.chat.completions.create(
+        model="anthropic/claude-sonnet-4.6",
+        messages=[
+            {
+            "role": "user",
+            "content": "How many r's are in the word 'strawberry'?"
+            }
+        ],
+        extra_body={"reasoning": {"enabled": True}}
     )
-    return response.content[0].text.strip()
+    resp = response.choices[0].message
+    print(f"resp {resp}")
+    return resp.get('content', '')
 
 
 # ---------------------------------------------------------------------------

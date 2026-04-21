@@ -19,8 +19,12 @@ from datetime import datetime
 #from copy import deepcopy
 from typing import Set, List
 import uuid
+import logging
 import questionary
 import chroma_user_api
+from memory_compact import AgentMemory
+
+logging.basicConfig(level=logging.INFO)
 
 WORKSPACE       = Path("agent_workspace")
 MEMORY_DIR      = WORKSPACE / ".memory"
@@ -115,12 +119,15 @@ class ToolRegistry:
         return (WORKSPACE / path).read_text()
 
     @staticmethod
-    def _write_file(path, content):
-        print(f"write file path {path}")
+    def _write_file(path: str | Path, content: str):
         p = WORKSPACE / path
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content)
-        return f"{len(content)} chars -> {p}"
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        except OSError as e:
+            raise RuntimeError(f"Failed to write {p}: {e}") from e
+        return f"wrote {len(content):,} chars → {p}"
+        #return p
 
     @staticmethod
     def _list_files(directory="."):
@@ -144,7 +151,7 @@ class ToolRegistry:
         filename = f"{timestamp}_{unique_id}.py"
 
         tmp = WORKSPACE / filename
-        tmp.write_text(code)
+        tmp.write_text(code, encoding='utf-8')
         try:
             ## for windows python
             r = subprocess.run(["python", str(tmp.resolve())], capture_output=True,
@@ -678,31 +685,34 @@ class CodeGenerator:
                 self._client = False
         return self._client
 
-    def _llm_generate(self, goal, fname):
+    def _llm_generate(self, context, fname):
         client = self._get_client()
         if not client:
             return None
-        is_code = fname.endswith(".py")
-        if is_code:
-            prompt = (
-                f"Write a complete Python file for this goal: {goal}\n"
-                f"The file will be saved as {fname}.\n"
-                "Requirements:\n"
-                "- Include a run_tests() function with assert-based tests\n"
-                "- Include if __name__ == '__main__': run_tests()\n"
-                "- Include error handling where appropriate\n"
-                "- Return ONLY the Python code, no markdown fences"
-            )
-        else:
-            prompt = (
-                f"Generate the content for a file named {fname} for this goal: {goal}\n"
-                "Return ONLY the file content, no markdown fences."
-            )
+        # is_code = fname.endswith(".py")
+        # if is_code:
+            # prompt = (
+                # f"Write a complete Python file for this goal: {goal}\n"
+                # f"The file will be saved as {fname}.\n"
+                # "Requirements:\n"
+                # "- Include a run_tests() function with assert-based tests\n"
+                # "- Include if __name__ == '__main__': run_tests()\n"
+                # "- Include error handling where appropriate\n"
+                # "- Return ONLY the Python code, no markdown fences"
+            # )
+        # else:
+            # prompt = (
+                # f"Generate the content for a file named {fname} for this goal: {goal}\n"
+                # "Return ONLY the file content, no markdown fences."
+            # )
+        messages=[{"role": "system", "content": "You are a Python expert. Output code only, no explanations."}]
+        messages = messages + context
+        logging.info(f"messages {messages}")
+
         model = "deepseek-reasoner"
         resp = client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": "You are a Python expert. Output code only, no explanations."},
-                      {"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.1,
         )
         code = resp.choices[0].message.content.strip()
@@ -712,9 +722,8 @@ class CodeGenerator:
                 code = code[:-3].rstrip()
         return code
 
-    def generate(self, goal, fname, context=None):
-        import os
-        code = self._llm_generate(goal, fname)
+    def generate(self, goal, fname, context):
+        code = self._llm_generate(context, fname)
         if code:
             code = self._apply_patches(code, goal)
             return code
@@ -750,9 +759,9 @@ class BrainstormEngine:
     ERROR_FIXES = [
         ("not found",   "File path mismatch",           "patch_path"),
         ("no such file","File path mismatch",           "patch_path"),
-        ("syntax",      "Syntax error in generated code","simplify"),
+        #("syntax",      "Syntax error in generated code","simplify"),
         ("cannot import","Wrong skill reused, regenerate", "rewrite"),
-        ("import",      "Missing import",                "fix_imports"),
+        ("import",      "Missing import",                "rewrite"),
         ("timeout",     "Infinite loop / timeout",       "add_limits"),
         ("permission",  "Permission denied",             "patch_path"),
         ("assert",      "Test assertion failure",        "fix_logic"),
@@ -825,14 +834,39 @@ class SelfEvolvingAgent:
         self.codegen = CodeGenerator(patches=self.memory.patches)
         self.history = []
         self.iteration = 0
-
+        self.context = None  ## conversation history
     def run(self, goal):
         print(f"\n{'='*60}")
         print(f"  GOAL: {goal}")
         print(f"{'='*60}")
+        
+        self.context = AgentMemory(
+            goal=goal,
+            max_messages_before_compact=20,  # compaction triggers here
+            recent_messages_to_keep=3,       # verbatim turns preserved
+        )
+        #self.context.add("user", goal)
 
         criteria = AcceptanceCriteria.generate(goal)
         fname = criteria["fname"]
+
+        is_code = fname.endswith(".py")
+        if is_code:
+            prompt = (
+                f"Write a complete Python file for this goal: {goal}\n"
+                f"The file will be saved as {fname}.\n"
+                "Requirements:\n"
+                "- Include a run_tests() function with assert-based tests\n"
+                "- Include if __name__ == '__main__': run_tests()\n"
+                "- Include error handling where appropriate\n"
+                "- Return ONLY the Python code, no markdown fences"
+            )
+        else:
+            prompt = (
+                f"Generate the content for a file named {fname} for this goal: {goal}\n"
+                "Return ONLY the file content, no markdown fences."
+            )
+        self.context.add("user", prompt)
 
         features = criteria["features"]
         print(f"\n  [FEATURES] Extracted {len(features)} required task features:")
@@ -867,21 +901,26 @@ class SelfEvolvingAgent:
                     self.memory.skills[matching_skill]["uses"] += 1
                     self.memory.save()
             else:
-                code = self.codegen.generate(goal, fname, context)
-                print(f"** code generate {code}")
-
+                ##build context
+                ctx = self.context.build_context()
+                code = self.codegen.generate(goal, fname, ctx)
+                logging.info(f"** code generate {code}")
+                self.context.add("assistant", code)
             self.tools.call("write_file", path=fname, content=code)
             print(f"**[EXEC] Written {fname} ({len(code)} chars)")
 
             run_r = self.tools.call("run_python", code=code)
+            logging.info(f"tools.call output {run_r}")
             if run_r["ok"]:
                 r = run_r["result"]
                 if r["stdout"].strip():
                     print(f"  [EXEC] stdout: {r['stdout'].strip()[:150]}")
                 if r["stderr"].strip():
-                    print(f"  [EXEC] stderr: {r['stderr'].strip()[:150]}")
+                    logging.error(f"python run stderr: {r['stderr'].strip()}")
             else:
-                print(f"  [EXEC] Error: {run_r['error'][:200]}")
+                logging.error(f"  [EXEC] false *Error: {run_r['error'][:200]}")
+                # use run_r['tb'] add to context and regenerate
+                self.context.add("user", run_r['tb'])
 
             report = AcceptanceCriteria.evaluate(criteria, self.tools)
             ReportPrinter.print_report(report)
@@ -897,7 +936,7 @@ class SelfEvolvingAgent:
                 self.memory.update_score(strategy, +0.1)
                 return {"success": True, "iterations": attempt, "score": score, "file": fname, "report": report}
 
-            if score == prev_score:
+            if score <= prev_score:
                 stuck_count += 1
             else:
                 stuck_count = 0
@@ -906,9 +945,9 @@ class SelfEvolvingAgent:
             if stuck_count >= STUCK_THRESHOLD:
                 print(f"\n  [STUCK] Brainstorming...")
 
-            action, diagnosis = BrainstormEngine.analyze(goal, report, self.history)
-            print(f"  [FIX] {action}: {diagnosis}")
-            self._apply_fix(action, goal, fname, report, code)
+                action, diagnosis = BrainstormEngine.analyze(goal, report, self.history)
+                logging.info(f"  [FIX] {action}: {diagnosis}")
+                self._apply_fix(action, goal, fname, report, code)
 
         best = max(self.history, key=lambda h: h["score"])
         print(f"\n{'='*60}")
@@ -936,7 +975,7 @@ class SelfEvolvingAgent:
         elif action == "rewrite":
             fresh_code = self.codegen.generate(goal, fname, context={})
             self.tools.call("write_file", path=fname, content=fresh_code)
-            print(f"  [EVOLVE] Regenerated {fname} from scratch ({len(fresh_code)} chars)")
+            logging.info(f"  [agent-fix] Regenerated {fname} from scratch ({len(fresh_code)} chars)")
         elif action == "fix_imports":
             if "import" not in prev_code[:50]:
                 self.tools.call("write_file", path=fname, content="import os, sys, json\n" + prev_code)
