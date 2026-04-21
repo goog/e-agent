@@ -155,7 +155,9 @@ class ToolRegistry:
         try:
             ## for windows python
             r = subprocess.run(["python", str(tmp.resolve())], capture_output=True,
-                               text=True, timeout=30, cwd=str(cwd or WORKSPACE))
+                               text=True, timeout=30, cwd=str(cwd or WORKSPACE),
+                               encoding='utf-8',
+                               env={**os.environ, "PYTHONIOENCODING": "utf-8"})
             return {"stdout": r.stdout, "stderr": r.stderr, "rc": r.returncode}
         finally:
             tmp.unlink(missing_ok=True)
@@ -484,7 +486,8 @@ class AcceptanceCriteria:
         source = ""
         tree = None
         if fpath.exists():
-            source = fpath.read_text()
+            #source = fpath.read_text()
+            source = fpath.read_text(encoding='utf-8', errors='replace')
             if fname.endswith(".py"):
                 try:
                     tree = ast.parse(source)
@@ -849,7 +852,7 @@ class SelfEvolvingAgent:
 
         criteria = AcceptanceCriteria.generate(goal)
         fname = criteria["fname"]
-
+        logging.info(f"fname {fname}")
         is_code = fname.endswith(".py")
         if is_code:
             prompt = (
@@ -917,6 +920,7 @@ class SelfEvolvingAgent:
                     print(f"  [EXEC] stdout: {r['stdout'].strip()[:150]}")
                 if r["stderr"].strip():
                     logging.error(f"python run stderr: {r['stderr'].strip()}")
+                    self.context.add("user", "fix error: " + r['stderr'].strip())
             else:
                 logging.error(f"  [EXEC] false *Error: {run_r['error'][:200]}")
                 # use run_r['tb'] add to context and regenerate
@@ -973,7 +977,10 @@ class SelfEvolvingAgent:
             self.tools.call("write_file", path=fname,
                             content=f"# Simplified solution for: {goal}\nprint('Done')\n")
         elif action == "rewrite":
-            fresh_code = self.codegen.generate(goal, fname, context={})
+            ##
+            ctx = self.context.build_context()
+            ctx = ctx[:1]
+            fresh_code = self.codegen.generate(goal, fname, ctx)
             self.tools.call("write_file", path=fname, content=fresh_code)
             logging.info(f"  [agent-fix] Regenerated {fname} from scratch ({len(fresh_code)} chars)")
         elif action == "fix_imports":
