@@ -275,12 +275,6 @@ class TaskFeatureExtractor:
          "has_type_hints", "Code uses type hints", "content_check"),
         (["main", "__main__", "entry", "script"],
          "has_main", "Code has a main entry point", "content_check"),
-        (["fibonacci"],
-         "impl_fibonacci", "Implements fibonacci correctly", "behavioral"),
-        (["factorial"],
-         "impl_factorial", "Implements factorial correctly", "behavioral"),
-        (["sort", "sorting"],
-         "impl_sort", "Implements sorting correctly", "behavioral"),
         (["search", "find", "look up"],
          "does_search", "Performs web search", "exec_check"),
         (["api", "request", "http", "fetch"],
@@ -733,7 +727,8 @@ class CodeGenerator:
 
         goal_lower = goal.lower()
         if any(k in goal_lower for k in ["search", "find", "look up"]):
-            sr = context.get("search_results", []) if context else []
+            #sr = context.get("search_results", []) if context else []
+            sr = {}  # context define changed
             lines_out = ["# Search Results", ""]
             for r in sr:
                 lines_out.append(f"- {r.get('title','')}: {r.get('body','')}")
@@ -895,14 +890,11 @@ class SelfEvolvingAgent:
                 for r in self.history[-2:]
             )
             matching_skill = None if skip_reuse else self._find_skill(goal)
-            if matching_skill:
-                ## skill confirm
-                answer = questionary.confirm("confirm to reuse history code").ask()
-                if answer:
-                    print(f"  [REUSE] Skill: {matching_skill}")
-                    code = self.memory.skills[matching_skill]["code"]
-                    self.memory.skills[matching_skill]["uses"] += 1
-                    self.memory.save()
+            if matching_skill and questionary.confirm("confirm to reuse history code").ask():
+                logging.info(f"  [REUSE] Skill: {matching_skill}")
+                code = self.memory.skills[matching_skill]["code"]
+                self.memory.skills[matching_skill]["uses"] += 1
+                self.memory.save()
             else:
                 ##build context
                 ctx = self.context.build_context()
